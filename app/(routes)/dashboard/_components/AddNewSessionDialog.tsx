@@ -33,8 +33,22 @@ function AddNewSessionDialog() {
         setLoading(false);
     }
 
-    const onStartConsultation = () => {
+    const onStartConsultation = async () => {
+        setLoading(true);
         // Save All Info to DB
+        const result = await axios.post('/api/session-chat',{
+            notes: note,
+            selectedAgent: selectedAgent
+        });
+
+        console.log(result.data)
+        if(result.data?.sessionId){
+            console.log(result.data.sessionId);
+            //Route to new Conversation Screen
+
+        }
+        setLoading(false);
+
     }
 
   return (
@@ -57,9 +71,13 @@ function AddNewSessionDialog() {
                                 <h2>Select Your Agent</h2>
                                 <div className='grid grid-cols-3 gap-5'>
                                     {/* //Suggested agents */}
-                                    {suggestedAgents.map((voiceAgent,index)=>(
+                                    {Array.isArray(suggestedAgents) && 
+                                    suggestedAgents.map((voiceAgent,index)=>(
                                         <SuggestedAgentsCard voiceAgent={voiceAgent} key={index}
-                                        setSelectedAgent = {() => setSelectedAgent(voiceAgent)}/>
+                                        setSelectedAgent = {() => setSelectedAgent(voiceAgent)}
+                                        //@ts-ignore
+                                        selectedAgent={selectedAgent}/>
+                                        
                                     ))}
                                 </div>
                             </div>}
@@ -72,7 +90,8 @@ function AddNewSessionDialog() {
 
                     {! suggestedAgents ? <Button disabled={!note||loading} onClick={()=>OnClickNext()}> 
                          Next {loading ? <Loader2 className='animate-spin'/>: <ArrowRight/>} </Button>
-                         : <Button onClick={() => onStartConsultation()}>Start Consultation</Button>}
+                         : <Button disabled={loading || !selectedAgent} onClick={() => onStartConsultation()}>Start Consultation
+                         {loading ? <Loader2 className='animate-spin'/>: <ArrowRight/>} </Button>}
                 </DialogFooter>
         </DialogContent>
     </Dialog>

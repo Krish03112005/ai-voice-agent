@@ -6,7 +6,7 @@ export async function POST(req:NextRequest) {
     const {notes}= await req.json();
     try {
         const completion = await openai.chat.completions.create({
-        model: "z-ai/glm-4.5-air:free",
+        model: "deepseek/deepseek-chat-v3.1:free",
         messages: [
             {role: 'system', content:JSON.stringify(AssistiveVoiceAgents)},
             { role: "user", content: "User Queries/Problems:"+notes+", Depends on user notes and queries, Please suggest list of agents, Return Object in JSON only" }
