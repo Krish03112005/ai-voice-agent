@@ -17,6 +17,7 @@ import { ArrowRight, Loader2 } from 'lucide-react'
 import axios from 'axios'
 import VoiceAgentCard, { voiceAgent } from './VoiceAgentCard'
 import SuggestedAgentsCard from './SuggestedAgentsCard'
+import { useRouter } from 'next/navigation'
 
 function AddNewSessionDialog() {
 
@@ -24,6 +25,7 @@ function AddNewSessionDialog() {
     const [loading, setLoading] = useState(false);
     const [suggestedAgents, setSuggestedAgents] = useState<voiceAgent[]>();
     const [selectedAgent, setSelectedAgent] = useState<voiceAgent>();
+    const router = useRouter();
 
     const OnClickNext = async () => {
         setLoading(true);
@@ -45,8 +47,8 @@ function AddNewSessionDialog() {
         if(result.data?.sessionId){
             console.log(result.data.sessionId);
             //Route to new Conversation Screen
-
-        }
+            router.push('/dashboard/convo-agent/'+result.data.sessionId);
+        }   
         setLoading(false);
 
     }
