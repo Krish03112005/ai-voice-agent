@@ -3,10 +3,11 @@ import axios from 'axios';
 import { useParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react'
 import { voiceAgent } from '../../_components/VoiceAgentCard';
-import { Circle, PhoneCall, PhoneOff } from 'lucide-react';
+import { Circle, Loader2, PhoneCall, PhoneOff } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import Vapi from '@vapi-ai/web';
+import Provider from '@/app/provider';
 
 type SessionDetail = {
   id: number,
@@ -15,6 +16,7 @@ type SessionDetail = {
   resport: JSON,
   selectedAgent: voiceAgent,
   createdOn: string,
+
 }
 
 type messages = {
@@ -29,24 +31,64 @@ function AvaVoiceAgent() {
   const [vapiInstance, setVapiInstance] = useState<any>();
   const [currentRole, setCurrentRole] = useState<string | null>();
   const [liveTranscript, setLiveTranscript] = useState<string>('');
+
+  // Add loading state at the top with other state declarations
+  const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<messages[]>([]);
 
   useEffect(() => {
     sessionId && GetSessionDetails();
-  },[sessionId]) 
+
+    return () => {
+        // Cleanup when component unmounts
+        if (vapiInstance) {
+          vapiInstance.stop();
+          vapiInstance.off('call-start');
+          vapiInstance.off('call-end');
+          vapiInstance.off('message');
+        }
+      };
+  }, [sessionId]);
 
   const GetSessionDetails = async () => {
-    const result = await axios.get('/api/session-chat?sessionId='+sessionId);
+    const result = await axios.get('/api/session-chat?sessionId=' + sessionId);
+    // setVapiInstance(vapi)
     console.log(result.data);
     setSessionDetails(result.data);
   }
 
-  const StartCall = () => {
+  const StartCall = async() => {
+    if (!sessionDetails) return;
+    setLoading(true);
     const vapi = new Vapi(process.env.NEXT_PUBLIC_VAPI_API_KEY!);
     setVapiInstance(vapi);
-    vapi.start(process.env.NEXT_PUBLIC_VAPI_VOICE_ASSISTANT_ID!);
 
-    // Listen for events
+    const VapiAgentConfig = {
+      name:"AI Consultataion Voice Agent",
+      firstMessage:"Hi, there i am your AI Voice Agent. How can I help you today?",
+      transcriber:{
+        provider: 'assembly-ai',
+        language: 'en' 
+      },
+      voice:{
+          provider: 'vapi',
+          voiceId: sessionDetails?.selectedAgent?.voiceId
+      },
+      model:{
+        provider: 'openai',
+        model: 'gpt-4',
+        messages: [
+          {
+            role: 'system',
+            content: sessionDetails?.selectedAgent?.agentPrompt
+          }
+        ]
+        
+      }
+    }
+
+    //@ts-ignore
+    vapi.start(VapiAgentConfig);
     vapi.on('call-start', () => {
       console.log('Call started')
       setCallStarted(true);
@@ -101,6 +143,9 @@ function AvaVoiceAgent() {
       setVapiInstance(null);
   };
 
+  const GenerateReport = () => {
+
+  };
 
   return (
     <div className='p-7 border rounded-3xl bg-secondary/50'>
@@ -121,17 +166,19 @@ function AvaVoiceAgent() {
 
               <div className='mt-12 overeflow-y-auto flex flex-col items-center px-10 md:px-28 lg:px-52 xl:px-72'>
                 {messages?.slice(-4).map((msg: messages,index)=> (  
-
                     <h2 className='text-gray-500 p-2' key={index}>{msg.role}: {msg.text}</h2>
-
                 ))}
                 {liveTranscript && liveTranscript?.length > 0 &&  <h2 className='text-lg'>{currentRole} : {liveTranscript}</h2>}
               </div>
 
-            {!callStarted ? <Button className='mt-30' onClick={StartCall}> 
-              <PhoneCall/> Start Call </Button>
-              :<Button variant={'destructive'} onClick={endCall}> <PhoneOff /> Disconnect </Button>
-        }
+              {!callStarted ? 
+              <Button className='mt-20' onClick={StartCall}>
+                <PhoneCall /> Start Call 
+              </Button>:
+              <Button variant={'destructive'} onClick={endCall}> 
+                <PhoneOff/> Disconnect 
+              </Button>
+            }
         </div>} 
     </div>
   )

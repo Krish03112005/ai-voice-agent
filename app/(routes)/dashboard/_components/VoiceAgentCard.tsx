@@ -9,6 +9,7 @@ export type voiceAgent = {
      description: string,
      image: string,
      agentPrompt: string,
+     voiceId?: string
 }
 
 type props = {
