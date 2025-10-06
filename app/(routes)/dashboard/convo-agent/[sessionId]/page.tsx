@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react'
 import { voiceAgent } from '../../_components/VoiceAgentCard';
-import { Circle, Loader2, PhoneCall, PhoneOff } from 'lucide-react';
+import { Circle, Loader, Loader2, PhoneCall, PhoneOff } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import Vapi from '@vapi-ai/web';
@@ -128,23 +128,67 @@ function AvaVoiceAgent() {
 
   }
 
-    const endCall = () => {
-      if (!vapiInstance) return;
-      console.log('Ending Call...');
-      //Stop the call
-      vapiInstance.stop();
-      //Optionally remove the listeners
-      vapiInstance.off('call-start');
-      vapiInstance.off('call-end');
-      vapiInstance.off('message');
+  //   const endCall = async () => {
+  //     setLoading(true);
+  //     // if (!vapiInstance) return;
+  //     // console.log('Ending Call...');
+  //     //Stop the call
+  //     vapiInstance.stop();
+  //     vapiInstance.off('call-start');
+  //     vapiInstance.off('call-end');
+  //     vapiInstance.off('message');
+  //     vapiInstance.off('speech-start');
+  //     vapiInstance.off('speech-end');
+  //     setCallStarted(false);
+  //     setVapiInstance(null);
 
-      //Reset call state
-      setCallStarted(false);
-      setVapiInstance(null);
-  };
+  //     const result = await GenerateReport();
 
-  const GenerateReport = () => {
+  //     setLoading(false);
+  // };
 
+  const endCall = async () => {
+  try {
+    setLoading(true);
+    
+    if (!vapiInstance) {
+      console.log('No active call to end');
+      setLoading(false);
+      return;
+    }
+
+    console.log('Ending Call...');
+    
+    // Stop the call and remove listeners
+    await vapiInstance.stop();
+    vapiInstance.off('call-start');
+    vapiInstance.off('call-end');
+    vapiInstance.off('message');
+    vapiInstance.off('speech-start');
+    vapiInstance.off('speech-end');
+    
+    setCallStarted(false);
+    setVapiInstance(null);
+
+    // Generate report
+    await GenerateReport();
+    
+  } catch (error) {
+    console.error('Error ending call:', error);
+  } finally {
+    // Make sure loading state is always reset
+    setLoading(false);
+  }
+};
+
+  const GenerateReport = async () => {
+    const result = await axios.post('/api/generated-report',{
+      messages: messages,
+      sessionDetail: sessionDetails,
+      sessionId: sessionId
+    })
+    console.log(result.data);
+    return result.data;
   };
 
   return (
@@ -171,14 +215,15 @@ function AvaVoiceAgent() {
                 {liveTranscript && liveTranscript?.length > 0 &&  <h2 className='text-lg'>{currentRole} : {liveTranscript}</h2>}
               </div>
 
-              {!callStarted ? 
-              <Button className='mt-20' onClick={StartCall}>
-                <PhoneCall /> Start Call 
-              </Button>:
-              <Button variant={'destructive'} onClick={endCall}> 
-                <PhoneOff/> Disconnect 
-              </Button>
-            }
+              {!callStarted ? (
+                <Button className='mt-20' onClick={StartCall} disabled={loading}>
+                  {loading ? <Loader className='animate-spin' /> : <PhoneCall />} Start Call 
+                </Button>
+              ):(
+                <Button variant={'destructive'} onClick={endCall} > 
+                  {loading ? <Loader className='animate-spin' /> : <PhoneOff />} Disconnect 
+                </Button>
+              )}
         </div>} 
     </div>
   )
